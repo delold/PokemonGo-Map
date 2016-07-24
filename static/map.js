@@ -124,6 +124,7 @@ function initSidebar() {
     $('#pokestops-switch').prop('checked', localStorage.showPokestops === 'true');
     $('#scanned-switch').prop('checked', localStorage.showScanned === 'true');
     $('#sound-switch').prop('checked', localStorage.playSound === 'true');
+    $('#opacity-switch').prop('checked', localStorage.fadePokemons === 'true');
 
     var searchBox = new google.maps.places.SearchBox(document.getElementById('next-location'));
 
@@ -278,9 +279,19 @@ function setupPokemonMarker(item) {
         sendNotification('A wild ' + item.pokemon_name + ' appeared!', 'Click to load map', 'static/icons/' + item.pokemon_id + '.png')
     }
 
+    setMarkerOpacity(marker, item.disappear_time);
     addListeners(marker);
     return marker;
 };
+
+function setMarkerOpacity(marker, disappear_time) {
+    if (localStorage.fadePokemons === 'true') {
+        var percentage = Math.min(Math.abs(new Date(disappear_time) - new Date()), 15 * 60 * 1000) / (15 * 60 * 1000);
+        marker.setOpacity(0.3 + (percentage * 0.7));
+    } else {
+        marker.setOpacity(1);
+    }
+}
 
 function setupGymMarker(item) {
     var marker = new google.maps.Marker({
@@ -525,6 +536,14 @@ $('#sound-switch').change(function() {
     localStorage["playSound"] = this.checked;
 });
 
+$('#opacity-switch').change(function() {
+    console.log("Pokemons", this.checked)
+    localStorage["fadePokemons"] = this.checked;
+    $.each(map_pokemons, function(key, value) {
+        setMarkerOpacity(map_pokemons[key].marker, map_pokemons[key]["disappear_time"]);
+    });
+});
+
 $('#scanned-switch').change(function() {
     localStorage["showScanned"] = this.checked;
     if (this.checked) {
@@ -538,6 +557,11 @@ $('#scanned-switch').change(function() {
 });
 
 var updateLabelDiffTime = function() {
+
+    $.each(map_pokemons, function(key, value) {
+        setMarkerOpacity(map_pokemons[key].marker, map_pokemons[key]["disappear_time"]);
+    });
+
     $('.label-countdown').each(function(index, element) {
         var disappearsAt = new Date(parseInt(element.getAttribute("disappears-at")));
         var now = new Date();
